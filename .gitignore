@@ -1,0 +1,31 @@
+# Environment Variables & Secrets
+.env
+*.env
+
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Test & Coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Model Caches / Local weights
+models/
+*.onnx
+*.bin
+
+# Logs & Local Scratch Recordings
+*.log
+*.wav
+scratch/
+.DS_Store
+Thumbs.db

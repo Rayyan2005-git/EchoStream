@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoStream — Real-Time Conversational AI Voice</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at 50% 30%, #0b1120 0%, #020617 100%);
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @keyframes ripple {
+      0% { transform: scale(0.85); opacity: 0.85; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .ripple-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      animation: ripple 2.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+      pointer-events: none;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 60px -5px rgba(6, 182, 212, 0.55);
+    }
+    .glow-violet {
+      box-shadow: 0 0 70px -5px rgba(168, 85, 247, 0.65);
+    }
+    .glow-amber {
+      box-shadow: 0 0 60px -5px rgba(245, 158, 11, 0.5);
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- Ambient Dynamic Radiant Halo -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div id="ambientBackdrop" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-tr from-cyan-600/20 via-indigo-600/20 to-purple-600/20 rounded-full blur-[130px] transition-all duration-1000"></div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="w-full max-w-6xl mx-auto px-6 py-5 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3.5">
+      <!-- Official Sonic Pulse Logo -->
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-400 via-teal-400 to-indigo-500 p-[1px] shadow-lg shadow-cyan-500/25">
+        <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
+          <svg class="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5v14M7 9v6M22 10v4M2 11v2"/>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">EchoStream</span>
+          <span class="px-2 py-0.5 text-[10px] font-mono tracking-wider font-semibold uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full">LIVE FULL-DUPLEX</span>
+        </div>
+        <p class="text-xs text-slate-400">Sub-500ms End-to-End Voice AI</p>
+      </div>
+    </div>
+
+    <!-- Right Controls: Voice Selector & Transcript Toggle -->
+    <div class="flex items-center gap-3">
+      <!-- Neural Voice Selector -->
+      <div class="hidden sm:flex items-center gap-2 glass-card px-3 py-1.5 rounded-full border border-slate-700/60 text-xs">
+        <span class="text-slate-400 text-[11px]">Voice:</span>
+        <select id="voiceSelect" class="bg-transparent text-cyan-300 font-medium focus:outline-none cursor-pointer">
+          <option value="en-US-JennyNeural" class="bg-slate-900 text-slate-200">Jenny (Friendly)</option>
+          <option value="en-US-GuyNeural" class="bg-slate-900 text-slate-200">Guy (Natural)</option>
+          <option value="en-US-AriaNeural" class="bg-slate-900 text-slate-200">Aria (Expressive)</option>
+          <option value="en-GB-SoniaNeural" class="bg-slate-900 text-slate-200">Sonia (British)</option>
+          <option value="en-US-ChristopherNeural" class="bg-slate-900 text-slate-200">Christopher (Deep)</option>
+        </select>
+      </div>
+
+      <!-- Live Latency Badge -->
+      <div class="glass-card px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-mono">
+        <span class="relative flex h-2 w-2">
+          <span id="statusIndicatorPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+          <span id="statusIndicatorDot" class="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+        </span>
+        <span id="latencyBadge" class="text-slate-300">Status: <span class="text-slate-400 font-semibold">Ready</span></span>
+      </div>
+
+      <!-- Transcript Drawer Toggle Button -->
+      <button id="toggleDrawerBtn" class="glass-card hover:bg-slate-800/80 p-2 rounded-full border border-slate-700/60 text-slate-300 hover:text-white transition-all cursor-pointer" title="Toggle Conversation History">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Center Visualizer Section -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4 relative my-4">
+
+    <!-- The Rippling Glowing Orb ("Vibration Effect") -->
+    <div class="relative w-80 h-80 sm:w-96 sm:h-96 flex items-center justify-center">
+
+      <!-- Expanding Concentric Shockwaves -->
+      <div id="ripple1" class="ripple-ring w-48 h-48 opacity-0"></div>
+      <div id="ripple2" class="ripple-ring w-48 h-48 opacity-0" style="animation-delay: 0.9s;"></div>
+      <div id="ripple3" class="ripple-ring w-48 h-48 opacity-0" style="animation-delay: 1.8s;"></div>
+
+      <!-- Glowing Radiant Halo -->
+      <div id="orbHalo" class="absolute w-56 h-56 rounded-full bg-cyan-500/20 blur-3xl opacity-40 transition-all duration-700"></div>
+
+      <!-- Interactive Canvas Audio Waveform / Particle Sphere -->
+      <canvas id="visualizerCanvas" width="400" height="400" class="absolute z-10 w-full h-full"></canvas>
+
+      <!-- Central Core Orb with Sonic Pulse Emblem -->
+      <div id="orbCore" class="relative z-20 w-32 h-32 rounded-full glass-card flex flex-col items-center justify-center shadow-2xl border border-white/10 transition-all duration-500 group cursor-pointer hover:scale-105 active:scale-95">
+        <div id="coreIconContainer" class="transition-transform duration-500">
+          <svg id="coreIcon" class="w-12 h-12 text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.7)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5v14M7 9v6M22 10v4M2 11v2"/>
+          </svg>
+        </div>
+        <span id="orbStateLabel" class="text-[10px] font-mono tracking-widest text-slate-400 uppercase mt-1 font-semibold">TAP TO START</span>
+      </div>
+    </div>
+
+    <!-- Live Subtitle / Dialogue Display -->
+    <div class="mt-6 text-center max-w-xl mx-auto px-4 z-20">
+      <p id="transcriptRole" class="text-xs uppercase tracking-widest font-mono text-cyan-400 font-semibold mb-1">CONVERSATION</p>
+      <h2 id="transcriptText" class="text-lg sm:text-xl font-medium text-slate-200 transition-all duration-300 min-h-[3.5rem] flex items-center justify-center">
+        "Tap the glowing orb or button below to start voice chat"
+      </h2>
+    </div>
+
+    <!-- Primary Action Controls -->
+    <div class="mt-6 flex items-center justify-center gap-3 z-20">
+      <!-- Session Start/Stop Toggle -->
+      <button id="sessionToggleBtn" class="px-6 py-3 rounded-full text-xs font-semibold tracking-wide uppercase font-mono bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2.5 active:scale-95 cursor-pointer">
+        <svg id="btnMicIcon" class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+        </svg>
+        <span id="btnMicText">Start Voice Session</span>
+      </button>
+
+      <!-- Instant Barge-In Kill Switch Button -->
+      <button id="interruptBtn" class="glass-card hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-4 py-3 rounded-full text-xs font-mono font-medium transition-all opacity-50 cursor-not-allowed flex items-center gap-2" disabled title="Interrupt AI mid-speech">
+        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        <span>Interrupt</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Side Transcript Drawer (Slide-out) -->
+  <aside id="transcriptDrawer" class="fixed top-0 right-0 h-full w-80 sm:w-96 glass-card border-l border-slate-800/90 z-30 transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+    <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        </svg>
+        <h3 class="text-sm font-bold text-slate-200">Conversation History</h3>
+      </div>
+      <button id="closeDrawerBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Message History Stream -->
+    <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+      <div class="text-center text-slate-500 py-8">
+        No conversation yet. Click Start Voice Session and speak into your mic!
+      </div>
+    </div>
+
+    <div class="p-3.5 border-t border-slate-800/80 bg-slate-950/40 text-[11px] font-mono text-slate-400 flex justify-between items-center">
+      <span>EchoStream Web Pipeline</span>
+      <span class="text-cyan-400 font-semibold">&lt;500ms Target</span>
+    </div>
+  </aside>
+
+  <!-- Bottom Latency Telemetry Footer -->
+  <footer class="w-full max-w-6xl mx-auto px-6 py-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2 z-20">
+    <div class="flex items-center gap-4 font-mono text-[11px]">
+      <span>Stack: <strong class="text-slate-300">Silero + Whisper + Groq + Edge-TTS</strong></span>
+      <span class="hidden md:inline text-slate-600">|</span>
+      <span class="hidden md:inline">Duplex: <strong class="text-emerald-400 font-semibold">Active Barge-In</strong></span>
+    </div>
+    <div id="statsBreakdown" class="font-mono text-[11px] text-slate-400">
+      STT: -- | TTFT: -- | TTS: -- | Total: --
+    </div>
+  </footer>
+
+  <!-- Audio Streaming & WebSocket Engine -->
+  <script>
+    let audioContext = null;
+    let micStream = null;
+    let micSource = null;
+    let scriptProcessor = null;
+    let analyser = null;
+    let dataArray = null;
+
+    let ws = null;
+    let isConnected = false;
+    let isAssistantSpeaking = false;
+    let currentState = 'idle';
+
+    let audioQueue = [];
+    let isPlayingQueue = false;
+
+    const canvas = document.getElementById('visualizerCanvas');
+    const ctx = canvas.getContext('2d');
+    let angle = 0;
+    const wavePoints = 64;
+
+    const orbHalo = document.getElementById('orbHalo');
+    const orbCore = document.getElementById('orbCore');
+    const orbStateLabel = document.getElementById('orbStateLabel');
+    const transcriptRole = document.getElementById('transcriptRole');
+    const transcriptText = document.getElementById('transcriptText');
+    const statusIndicatorDot = document.getElementById('statusIndicatorDot');
+    const statusIndicatorPing = document.getElementById('statusIndicatorPing');
+    const latencyBadge = document.getElementById('latencyBadge');
+    const sessionToggleBtn = document.getElementById('sessionToggleBtn');
+    const btnMicText = document.getElementById('btnMicText');
+    const interruptBtn = document.getElementById('interruptBtn');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const statsBreakdown = document.getElementById('statsBreakdown');
+    const ripples = [document.getElementById('ripple1'), document.getElementById('ripple2'), document.getElementById('ripple3')];
+
+    const transcriptDrawer = document.getElementById('transcriptDrawer');
+    const toggleDrawerBtn = document.getElementById('toggleDrawerBtn');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+
+    toggleDrawerBtn.onclick = () => transcriptDrawer.classList.toggle('translate-x-full');
+    closeDrawerBtn.onclick = () => transcriptDrawer.classList.add('translate-x-full');
+
+    function setOrbState(state) {
+      currentState = state;
+      if (navigator.vibrate) navigator.vibrate(25);
+
+      if (state === 'idle') {
+        orbHalo.className = 'absolute w-56 h-56 rounded-full bg-slate-600/30 blur-2xl opacity-40 transition-all duration-700';
+        orbCore.className = 'relative z-20 w-32 h-32 rounded-full glass-card flex flex-col items-center justify-center shadow-2xl border border-white/10 transition-all duration-500';
+        orbStateLabel.innerText = 'LISTENING';
+        orbStateLabel.className = 'text-[10px] font-mono tracking-widest text-emerald-400 uppercase mt-1 font-semibold';
+        statusIndicatorDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
+        statusIndicatorPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+        latencyBadge.innerHTML = 'Status: <span class="text-emerald-400 font-semibold">Listening</span>';
+        ripples.forEach(r => r.style.opacity = '0');
+        interruptBtn.disabled = true;
+        interruptBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      else if (state === 'listening') {
+        orbHalo.className = 'absolute w-64 h-64 rounded-full bg-gradient-to-tr from-cyan-500 to-teal-400 blur-2xl opacity-75 glow-cyan transition-all duration-700';
+        orbCore.className = 'relative z-20 w-32 h-32 rounded-full glass-card flex flex-col items-center justify-center shadow-2xl border border-cyan-400/50 glow-cyan transition-all duration-500 scale-105';
+        orbStateLabel.innerText = 'HEARING YOU';
+        orbStateLabel.className = 'text-[10px] font-mono tracking-widest text-cyan-300 uppercase mt-1 font-semibold';
+        transcriptRole.innerText = 'USER DETECTED';
+        statusIndicatorDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-cyan-400';
+        statusIndicatorPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-300 opacity-75';
+        ripples.forEach(r => r.style.opacity = '0.75');
+      }
+      else if (state === 'thinking') {
+        orbHalo.className = 'absolute w-60 h-60 rounded-full bg-gradient-to-tr from-amber-500 via-indigo-600 to-cyan-500 blur-2xl opacity-75 glow-amber animate-pulse transition-all duration-700';
+        orbCore.className = 'relative z-20 w-32 h-32 rounded-full glass-card flex flex-col items-center justify-center shadow-2xl border border-amber-400/40 glow-amber transition-all duration-500';
+        orbStateLabel.innerText = 'THINKING';
+        orbStateLabel.className = 'text-[10px] font-mono tracking-widest text-amber-300 uppercase mt-1 font-semibold';
+        transcriptRole.innerText = 'PROCESSING PIPELINE';
+        transcriptText.innerText = 'Transcribing speech & buffering response...';
+        statusIndicatorDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-amber-400';
+        statusIndicatorPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75';
+        latencyBadge.innerHTML = 'Status: <span class="text-amber-400 font-semibold">Thinking</span>';
+        ripples.forEach(r => r.style.opacity = '0');
+      }
+      else if (state === 'speaking') {
+        orbHalo.className = 'absolute w-72 h-72 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-cyan-400 blur-3xl opacity-85 glow-violet transition-all duration-700';
+        orbCore.className = 'relative z-20 w-32 h-32 rounded-full glass-card flex flex-col items-center justify-center shadow-2xl border border-fuchsia-400/60 glow-violet transition-all duration-500 scale-110';
+        orbStateLabel.innerText = 'SPEAKING';
+        orbStateLabel.className = 'text-[10px] font-mono tracking-widest text-fuchsia-300 uppercase mt-1 font-semibold';
+        transcriptRole.innerText = 'ECHOSTREAM';
+        statusIndicatorDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-fuchsia-500';
+        statusIndicatorPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75';
+        ripples.forEach(r => r.style.opacity = '0.9');
+        interruptBtn.disabled = false;
+        interruptBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    async function startSession() {
+      try {
+        let wsUrl;
+        if (window.location.protocol === 'file:') {
+          wsUrl = 'ws://127.0.0.1:8000/ws';
+        } else {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const host = window.location.host || 'localhost:8000';
+          wsUrl = `${protocol}//${host}/ws`;
+        }
+
+        ws = new WebSocket(wsUrl);
+        ws.binaryType = 'arraybuffer';
+
+        ws.onopen = async () => {
+          isConnected = true;
+          sessionToggleBtn.classList.remove('from-cyan-500', 'to-indigo-600');
+          sessionToggleBtn.classList.add('from-rose-500', 'to-red-600');
+          btnMicText.innerText = 'End Voice Session';
+          transcriptText.innerText = '"I\'m listening. Say anything..."';
+          setOrbState('idle');
+
+          ws.send(JSON.stringify({ type: 'config', voice: voiceSelect.value }));
+          await initMicrophoneCapture();
+        };
+
+        ws.onmessage = async (event) => {
+          if (typeof event.data === 'string') {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'state') {
+              setOrbState(data.state);
+            }
+            else if (data.type === 'transcript') {
+              if (data.role === 'user') {
+                transcriptRole.innerText = 'YOU ASKED';
+                transcriptText.innerText = `"${data.text}"`;
+                appendMessage('user', data.text, data.stt_ms ? `STT: ${data.stt_ms}ms` : null);
+              }
+            }
+            else if (data.type === 'transcript_chunk') {
+              if (data.role === 'assistant') {
+                transcriptRole.innerText = 'ECHOSTREAM';
+                transcriptText.innerText = `"${data.text}"`;
+                appendMessage('assistant', data.text);
+              }
+            }
+            else if (data.type === 'latency_stats') {
+              latencyBadge.innerHTML = `Latency: <span class="text-cyan-400 font-semibold">${data.total_ms}ms</span>`;
+              statsBreakdown.innerText = `STT: ${data.stt_ms}ms | First Sent: ${data.llm_ms}ms | TTS TTFB: ${data.tts_ms}ms | Total: ${data.total_ms}ms`;
+            }
+            else if (data.type === 'interrupted') {
+              transcriptText.innerText = '"[Interrupted - Listening]"';
+              clearAudioQueue();
+              setOrbState('idle');
+            }
+          } else if (event.data instanceof ArrayBuffer) {
+            enqueuePcmAudio(event.data);
+          }
+        };
+
+        ws.onclose = () => {
+          stopSession();
+        };
+
+        ws.onerror = (err) => {
+          console.error("WebSocket error:", err);
+          stopSession();
+        };
+
+      } catch (err) {
+        alert("Failed to start voice session: " + err.message);
+        stopSession();
+      }
+    }
+
+    function stopSession() {
+      isConnected = false;
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor = null;
+      }
+      clearAudioQueue();
+      sessionToggleBtn.classList.remove('from-rose-500', 'to-red-600');
+      sessionToggleBtn.classList.add('from-cyan-500', 'to-indigo-600');
+      btnMicText.innerText = 'Start Voice Session';
+      transcriptText.innerText = '"Click Start Voice Session to chat"';
+      orbStateLabel.innerText = 'TAP TO START';
+      statusIndicatorDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-500';
+      statusIndicatorPing.className = 'hidden';
+      ripples.forEach(r => r.style.opacity = '0');
+    }
+
+    async function initMicrophoneCapture() {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+
+      micSource = audioContext.createMediaStreamSource(micStream);
+      scriptProcessor = audioContext.createScriptProcessor(512, 1, 1);
+
+      const muteNode = audioContext.createGain();
+      muteNode.gain.value = 0;
+      micSource.connect(analyser);
+      micSource.connect(scriptProcessor);
+      scriptProcessor.connect(muteNode);
+      muteNode.connect(audioContext.destination);
+
+      scriptProcessor.onaudioprocess = (e) => {
+        if (!isConnected || ws.readyState !== WebSocket.OPEN) return;
+        if (isAssistantSpeaking) return;
+
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        ws.send(pcm16.buffer);
+      };
+    }
+
+    function enqueuePcmAudio(arrayBuffer) {
+      if (!audioContext) return;
+
+      const pcm16 = new Int16Array(arrayBuffer);
+      const float32 = new Float32Array(pcm16.length);
+      for (let i = 0; i < pcm16.length; i++) {
+        float32[i] = pcm16[i] / 32768.0;
+      }
+
+      const audioBuffer = audioContext.createBuffer(1, float32.length, 16000);
+      audioBuffer.getChannelData(0).set(float32);
+
+      audioQueue.push(audioBuffer);
+      if (!isPlayingQueue) {
+        playNextQueueItem();
+      }
+    }
+
+    let nextPlayTime = 0;
+    function playNextQueueItem() {
+      if (audioQueue.length === 0) {
+        isPlayingQueue = false;
+        isAssistantSpeaking = false;
+        setOrbState('idle');
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'playback_ended' }));
+        }
+        return;
+      }
+
+      isPlayingQueue = true;
+      isAssistantSpeaking = true;
+      setOrbState('speaking');
+
+      const buffer = audioQueue.shift();
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
+
+      const currentTime = audioContext.currentTime;
+      const startTime = Math.max(currentTime, nextPlayTime);
+      source.start(startTime);
+      nextPlayTime = startTime + buffer.duration;
+
+      source.onended = () => {
+        if (audioQueue.length === 0 && audioContext.currentTime >= nextPlayTime - 0.05) {
+          playNextQueueItem();
+        } else {
+          playNextQueueItem();
+        }
+      };
+    }
+
+    function clearAudioQueue() {
+      audioQueue = [];
+      isPlayingQueue = false;
+      isAssistantSpeaking = false;
+      nextPlayTime = 0;
+    }
+
+    function appendMessage(role, text, badge = null) {
+      if (messagesContainer.querySelector('.text-center')) {
+        messagesContainer.innerHTML = '';
+      }
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = role === 'user' ? 'flex flex-col items-end' : 'flex flex-col items-start';
+
+      const bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'bg-cyan-500/15 border border-cyan-500/30 text-slate-100 px-3.5 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%]'
+        : 'glass-card text-slate-200 px-3.5 py-2.5 rounded-2xl rounded-tl-sm max-w-[85%] border-slate-700/60';
+
+      bubble.innerText = text;
+      msgDiv.appendChild(bubble);
+
+      if (badge) {
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'text-[10px] font-mono text-cyan-400 mt-1';
+        badgeSpan.innerText = badge;
+        msgDiv.appendChild(badgeSpan);
+      }
+
+      messagesContainer.appendChild(msgDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function renderVisualizer() {
+      requestAnimationFrame(renderVisualizer);
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const baseRadius = 88;
+
+      ctx.clearRect(0, 0, width, height);
+      angle += 0.032;
+
+      let energy = 0.2;
+      if (currentState === 'idle') energy = 0.15;
+      if (currentState === 'listening') energy = 0.75;
+      if (currentState === 'thinking') energy = 0.45;
+      if (currentState === 'speaking') energy = 1.35;
+
+      if (analyser && dataArray) {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+        if (avg > 5) {
+          energy = Math.max(0.3, (avg / 128.0) * 1.8);
+        }
+      }
+
+      ctx.beginPath();
+      for (let i = 0; i <= wavePoints; i++) {
+        const theta = (i / wavePoints) * Math.PI * 2;
+        let waveOffset = 0;
+
+        if (currentState === 'speaking') {
+          waveOffset = Math.sin(theta * 6 + angle * 3) * (20 * energy) +
+                       Math.cos(theta * 10 - angle * 2) * (10 * energy);
+        } else if (currentState === 'listening') {
+          waveOffset = Math.sin(theta * 4 + angle * 2) * (14 * energy);
+        } else if (currentState === 'thinking') {
+          waveOffset = Math.sin(theta * 8 + angle * 5) * (8 * energy);
+        } else {
+          waveOffset = Math.sin(theta * 2 + angle) * 3;
+        }
+
+        const r = baseRadius + 35 + waveOffset;
+        const x = centerX + Math.cos(theta) * r;
+        const y = centerY + Math.sin(theta) * r;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      if (currentState === 'speaking') {
+        ctx.strokeStyle = 'rgba(217, 70, 239, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#e879f9';
+        ctx.shadowBlur = 18;
+      } else if (currentState === 'listening') {
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.9)';
+        ctx.lineWidth = 2.8;
+        ctx.shadowColor = '#22d3ee';
+        ctx.shadowBlur = 14;
+      } else if (currentState === 'thinking') {
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.75)';
+        ctx.lineWidth = 2.2;
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 12;
+      } else {
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
+      }
+      ctx.stroke();
+
+      ctx.beginPath();
+      for (let i = 0; i <= wavePoints; i++) {
+        const theta = (i / wavePoints) * Math.PI * 2;
+        const innerOffset = Math.sin(theta * 8 - angle * 4) * (8 * energy);
+        const r = baseRadius + 18 + innerOffset;
+        const x = centerX + Math.cos(theta) * r;
+        const y = centerY + Math.sin(theta) * r;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = currentState === 'speaking' ? 'rgba(168, 85, 247, 0.5)' : 'rgba(56, 189, 248, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      const particleCount = currentState === 'speaking' ? 18 : 8;
+      for (let p = 0; p < particleCount; p++) {
+        const pAngle = angle * (currentState === 'speaking' ? 2 : 1) + (p * ((Math.PI * 2) / particleCount));
+        const pDist = baseRadius + 45 + Math.sin(pAngle * 3) * (15 * energy);
+        const px = centerX + Math.cos(pAngle) * pDist;
+        const py = centerY + Math.sin(pAngle) * pDist;
+
+        ctx.beginPath();
+        ctx.arc(px, py, currentState === 'speaking' ? 2.5 : 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = currentState === 'speaking' ? '#f472b6' : '#38bdf8';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 8;
+        ctx.fill();
+      }
+    }
+
+    sessionToggleBtn.onclick = () => {
+      if (!isConnected) {
+        startSession();
+      } else {
+        stopSession();
+      }
+    };
+
+    orbCore.onclick = () => {
+      if (!isConnected) {
+        startSession();
+      }
+    };
+
+    interruptBtn.onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'interrupt' }));
+        clearAudioQueue();
+        setOrbState('idle');
+      }
+    };
+
+    voiceSelect.onchange = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'config', voice: voiceSelect.value }));
+      }
+    };
+
+    renderVisualizer();
+  </script>
+</body>
+</html>

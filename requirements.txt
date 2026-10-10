@@ -1,0 +1,33 @@
+# EchoStream Core Dependencies
+# Target Environment: Python 3.11+ (Windows / Linux / macOS)
+
+# Orchestration & Streaming Framework
+pipecat-ai>=0.0.50
+
+# Local Voice Activity Detection (VAD)
+silero-vad>=5.1.2
+onnxruntime>=1.16.0
+torch>=2.1.0
+
+# Local Speech-to-Text (STT)
+faster-whisper>=1.0.0
+
+# Ultra-Low Latency Cloud LLM (Free Tier)
+groq>=0.11.0
+
+# Fast Streaming Text-to-Speech (TTS)
+edge-tts>=6.1.12
+
+# Audio Input / Output & Processing
+pyaudio>=0.2.14
+numpy>=1.24.0,<2.1.0
+
+# Async Utilities & Configuration
+python-dotenv>=1.0.0
+loguru>=0.7.2
+aiohttp>=3.9.5
+
+# Web Interface & WebSocket Server
+fastapi>=0.115.0
+uvicorn>=0.30.0
+
